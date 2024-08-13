@@ -1,0 +1,7 @@
+load --module 7 $HOME/myexpos/stage22/boot_s22.xsm
+load --int=8 $HOME/myexpos/stage22/fork.xsm
+load --init $HOME/myexpos/stage22/init.xsm
+load --int=13 $HOME/myexpos/stage22/int_13.xsm
+load --int=14 $HOME/myexpos/stage22/int_14.xsm
+load --module 0 $HOME/myexpos/stage22/mod0.xsm
+load --module 1 $HOME/myexpos/stage22/process_mod1.xsm

@@ -1,0 +1,6 @@
+load --module 7 $HOME/myexpos/stage23/boot_s23.xsm
+load --module 4 $HOME/myexpos/stage23/disk_mm.xsm
+load --module 0 $HOME/myexpos/stage23/mod0.xsm
+load --init $HOME/myexpos/stage23/init.xsm
+load --int=4 $HOME/myexpos/stage23/temp4.xsm
+load --int=15 $HOME/myexpos/stage23/shutdown.xsm

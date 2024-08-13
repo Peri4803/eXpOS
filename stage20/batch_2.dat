@@ -1,0 +1,6 @@
+load --module 7 $HOME/myexpos/stage20/boot_s20.xsm
+load --module 1 $HOME/myexpos/stage20/process_mod1.xsm
+load --module 5 $HOME/myexpos/stage20/scheduler.xsm
+load --init $HOME/myexpos/stage20/asgn_2.xsm
+load --int=8 $HOME/myexpos/stage20/fork.xsm
+load --int=10 $HOME/myexpos/stage20/exit.xsm

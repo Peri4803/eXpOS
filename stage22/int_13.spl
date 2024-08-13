@@ -1,0 +1,131 @@
+alias userSP R0;
+userSP = SP;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+
+alias syscall R1;
+
+syscall = [[PTBR + 2*(userSP - 5)/512]*512 + (userSP-5)%512];
+
+
+//semget
+if(syscall == 17) then
+   
+   alias userpage R2;
+   userpage = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11];
+
+   [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 17;
+
+
+   //get free per process resource table entry
+   alias i R3;
+   i = 0;
+
+   alias RESOURCE_TABLE_ADDRESS R4;
+   RESOURCE_TABLE_ADDRESS = (userpage+1)*512 - 16;
+
+
+   while(i<8) do
+      
+       if([RESOURCE_TABLE_ADDRESS + i*2] == -1) then
+           
+           break;
+
+       endif;
+
+    i = i + 1;
+   
+   endwhile;
+
+
+   if( i == 8) then
+      //couldn't find free place in per process resource table return -1
+      [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = -1;
+
+      [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+      SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+      ireturn;
+
+   endif;
+   
+   //invoke acquire semaphore
+   alias semID R5;
+
+    multipush(R0,R1,R2,R3,R4);
+    R1 = 6;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    call MOD_0;
+    R5 = R0;
+    multipop(R0,R1,R2,R3,R4);
+
+   
+   if(semID == -1) then
+      //no free semaphore return -2
+
+      [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = -2;
+
+      [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+      SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+      ireturn;
+
+    endif;
+
+    //store the index of the Semaphore table entry in per process resource table attaching semaphore to process
+    [RESOURCE_TABLE_ADDRESS + i*2] = 1;
+    [RESOURCE_TABLE_ADDRESS + i*2 + 1] = semID;
+
+    //return per process resource table index // semaphore descriptor
+    [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = i;
+
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+    SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+    ireturn;
+
+endif;
+
+//semrelease 
+if(syscall == 18 ) then
+   
+   [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 18;
+   
+   //extract semaphore descriptor
+   alias index R2;
+   index = [[PTBR + 2*(userSP - 4)/512]*512 + (userSP-4)%512];
+
+   alias RESOURCE_TABLE_ADDRESS R3;
+   RESOURCE_TABLE_ADDRESS = ([PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]+1)*512 - 16;
+
+   alias semID R4;
+   semID = [RESOURCE_TABLE_ADDRESS + index*2 + 1];
+   
+   if((index < 0 || index > 7) || [RESOURCE_TABLE_ADDRESS + index*2] != 1) then
+   //semaphore description is invalid return -1
+    [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = -1;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 9] = 0;
+    SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13];
+    ireturn;
+   endif;
+
+   //invoke release semaphore 
+   multipush(R0,R1,R2,R3,R4);
+   R1 = 7;
+   R2 = semID;
+   R3 = [SYSTEM_STATUS_TABLE + 1];
+   call MOD_0;
+   multipop(R0,R1,R2,R3,R4);
+
+
+   //invaliding entry in resource table
+
+   [RESOURCE_TABLE_ADDRESS + index*2] = -1;
+   [RESOURCE_TABLE_ADDRESS + index*2 + 1] = -1;
+
+
+   [[PTBR + 2*(userSP - 1)/512]*512 + (userSP-1)%512] = 0;
+
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+    SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+    ireturn;
+
+endif;
